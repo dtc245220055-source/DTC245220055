@@ -16,7 +16,7 @@ Dự án triển khai website giới thiệu sản phẩm nước rau má nguyê
 - [x] Giai đoạn 1: Khởi tạo repository và cấu trúc dự án
 - [x] Giai đoạn 2: WordPress + MySQL + phpMyAdmin đã chạy và được xác minh
 - [x] Giai đoạn 3: Nginx reverse proxy và security headers
-- [ ] Giai đoạn 4: Prometheus + Grafana
+- [x] Giai đoạn 4: Prometheus + Grafana, 4 targets UP và dashboard được tự động provision
 - [ ] Giai đoạn 5: Loki + Promtail
 - [ ] Giai đoạn 6: Hardening
 - [ ] Giai đoạn 7: Báo cáo và bảo vệ
@@ -50,6 +50,16 @@ Nginx là điểm truy cập duy nhất của website tại `http://localhost:80
 - `X-Content-Type-Options: nosniff`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Permissions-Policy` tắt camera, microphone và geolocation
+
+## Giám sát Prometheus và Grafana
+
+- Prometheus: `http://localhost:9095`
+- Grafana: `http://localhost:3005`
+- Prometheus thu thập metrics từ chính Prometheus, cAdvisor, Nginx Exporter và MySQL Exporter.
+- Dashboard `De 03 - WordPress Monitoring` được tự động nạp từ thư mục `monitoring/grafana/dashboards`.
+- Dữ liệu Prometheus và Grafana được lưu trong named volumes để không mất khi tạo lại container.
+
+Kiểm tra các target tại `http://localhost:9095/targets`; cả bốn target phải có trạng thái `UP`.
 
 ## Quy tắc bảo mật
 

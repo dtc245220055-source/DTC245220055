@@ -78,11 +78,97 @@ services:
       - frontend
       - backend
 
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.5.3
+    container_name: dtc245220055-nginx-exporter
+    restart: unless-stopped
+    command:
+      - --nginx.scrape-uri=http://nginx:8080/stub_status
+    depends_on:
+      nginx:
+        condition: service_healthy
+    networks:
+      - frontend
+      - monitoring
+
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.20.0
+    container_name: dtc245220055-mysqld-exporter
+    restart: unless-stopped
+    command:
+      - --mysqld.address=mysql:3306
+      - --mysqld.username=${MYSQL_USER}
+    environment:
+      MYSQLD_EXPORTER_PASSWORD: ${MYSQL_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+      - monitoring
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.60.6
+    container_name: dtc245220055-cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - monitoring
+
+  prometheus:
+    image: prom/prometheus:v3.13.3
+    container_name: dtc245220055-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    ports:
+      - "127.0.0.1:9095:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - cadvisor
+      - nginx-exporter
+      - mysqld-exporter
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    container_name: dtc245220055-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "127.0.0.1:3005:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
 volumes:
   mysql_data:
     name: dtc245220055_mysql_data
   wordpress_data:
     name: dtc245220055_wordpress_data
+  prometheus_data:
+    name: dtc245220055_prometheus_data
+  grafana_data:
+    name: dtc245220055_grafana_data
 
 networks:
   frontend:
@@ -90,4 +176,6 @@ networks:
   backend:
     name: dtc245220055_backend
     internal: true
+  monitoring:
+    name: dtc245220055_monitoring
 

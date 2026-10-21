@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: DTC245220055
+    orgId: 1
+    folder: De 03
+    type: file
+    disableDeletion: true
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
