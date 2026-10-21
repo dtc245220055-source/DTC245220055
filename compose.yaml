@@ -1,0 +1,93 @@
+name: dtc245220055-de03
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: dtc245220055-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  wordpress:
+    image: wordpress:php8.3-apache
+    container_name: dtc245220055-wordpress
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE}
+      WORDPRESS_DB_USER: ${MYSQL_USER}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
+      WORDPRESS_TABLE_PREFIX: ${WORDPRESS_TABLE_PREFIX}
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - frontend
+      - backend
+
+  nginx:
+    image: nginx:1.30.6-alpine
+    container_name: dtc245220055-nginx
+    restart: unless-stopped
+    depends_on:
+      - wordpress
+    ports:
+      - "127.0.0.1:8082:80"
+    volumes:
+      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - frontend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/nginx-health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  phpmyadmin:
+    image: phpmyadmin:5.2-apache
+    container_name: dtc245220055-phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "127.0.0.1:8083:80"
+    networks:
+      - frontend
+      - backend
+
+volumes:
+  mysql_data:
+    name: dtc245220055_mysql_data
+  wordpress_data:
+    name: dtc245220055_wordpress_data
+
+networks:
+  frontend:
+    name: dtc245220055_frontend
+  backend:
+    name: dtc245220055_backend
+    internal: true
+

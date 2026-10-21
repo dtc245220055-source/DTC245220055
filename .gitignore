@@ -1,0 +1,27 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# WordPress runtime data
+wordpress/
+mysql-data/
+
+# Monitoring runtime data
+prometheus-data/
+grafana-data/
+loki-data/
+
+# Certificates and private keys
+nginx/certs/*.key
+nginx/certs/*.pem
+
+# Evidence generated during verification
+evidence/
+
+# Editor and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
