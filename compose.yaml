@@ -36,6 +36,8 @@ services:
       WORDPRESS_TABLE_PREFIX: ${WORDPRESS_TABLE_PREFIX}
     volumes:
       - wordpress_data:/var/www/html
+      - ./wordpress-theme/rau-ma:/var/www/html/wp-content/themes/rau-ma:ro
+      - ./wordpress-mu-plugins:/var/www/html/wp-content/mu-plugins:ro
     networks:
       - frontend
       - backend
@@ -157,6 +159,37 @@ services:
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
+      - loki
+    networks:
+      - monitoring
+
+  loki:
+    image: grafana/loki:3.6.11
+    container_name: dtc245220055-loki
+    restart: unless-stopped
+    command:
+      - -config.file=/etc/loki/config.yml
+    ports:
+      - "127.0.0.1:3105:3100"
+    volumes:
+      - ./logging/loki/config.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    networks:
+      - monitoring
+
+  promtail:
+    image: grafana/promtail:3.6.11
+    container_name: dtc245220055-promtail
+    restart: unless-stopped
+    command:
+      - -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./logging/promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - promtail_positions:/var/lib/promtail
+    depends_on:
+      - loki
     networks:
       - monitoring
 
@@ -169,6 +202,10 @@ volumes:
     name: dtc245220055_prometheus_data
   grafana_data:
     name: dtc245220055_grafana_data
+  loki_data:
+    name: dtc245220055_loki_data
+  promtail_positions:
+    name: dtc245220055_promtail_positions
 
 networks:
   frontend:
